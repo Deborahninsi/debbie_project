@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // For TextInputFormatter
-
-// Assuming Transaction and ExpenseCategoryTotal models are accessible
-// (either defined in a common models.dart or passed around)
-// For simplicity, let's redefine a simple category structure here if needed
-// or assume it's globally available.
+import 'package:flutter/services.dart';
 
 class AddExpenseScreen extends StatefulWidget {
-  final Map<String, double> initialExpenses; // Pre-fill if editing
+  final Map<String, double> initialExpenses;
   final Function(Map<String, double> categorizedExpenses, double total) onExpensesSubmitted;
 
   const AddExpenseScreen({
     super.key,
-    this.initialExpenses = const {}, // Default to empty map
+    this.initialExpenses = const {},
     required this.onExpensesSubmitted,
   });
 
@@ -21,7 +16,6 @@ class AddExpenseScreen extends StatefulWidget {
 }
 
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
-  // Define your expense categories
   final List<String> _expenseCategories = [
     'Food & Drinks',
     'Transport',
@@ -58,23 +52,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void _submitExpenses() {
-    _calculateTotal(); // Ensure total is up-to-date before submitting
+    _calculateTotal();
 
     final Map<String, double> categorizedExpenses = {};
     _controllers.forEach((category, controller) {
       final amount = double.tryParse(controller.text) ?? 0.0;
-      if (amount > 0) { // Only include categories with actual expenses
+      if (amount > 0) {
         categorizedExpenses[category] = amount;
       }
     });
 
     widget.onExpensesSubmitted(categorizedExpenses, _totalCalculatedAmount);
-
-    // Optionally clear fields after submission if desired, or let HomePage handle it
-    // _clearAllFields();
-    // setState(() {
-    //   _totalCalculatedAmount = 0.0;
-    // });
   }
 
   void _clearAllFields() {
@@ -94,7 +82,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     super.dispose();
   }
 
-  // Helper to format currency (consistent with HomePage)
   String _formatCurrency(double amount) {
     return 'FCFA ${amount.toStringAsFixed(2)}';
   }
@@ -105,8 +92,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final TextTheme textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      // AppBar might be part of HomePage, but if standalone, add one:
-      // appBar: AppBar(title: const Text("Add Expenses by Category")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -134,7 +119,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
-                  onChanged: (_) => _calculateTotal(), // Recalculate on any change
+                  onChanged: (_) => _calculateTotal(),
                 ),
               );
             }).toList(),
@@ -180,4 +165,3 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 }
-

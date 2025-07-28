@@ -29,8 +29,10 @@ class _LoginPageState extends State<LoginPage> {
       print('Email: ${_emailController.text}');
       print('Password: ${_passwordController.text}');
       await Future.delayed(const Duration(seconds: 2)); // Simulate network
-      // **TODO: Implement actual email/password authentication logic here**
-      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+
+      // TODO: Replace with actual authentication
+      if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
+
       setState(() => _isLoading = false);
     }
   }
@@ -38,27 +40,24 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _loginWithGoogle() async {
     setState(() => _isLoading = true);
     print('Attempting Google Login...');
-    // **TODO: Implement Google Sign-In logic here**
     await Future.delayed(const Duration(seconds: 1)); // Simulate
-    if (mounted) Navigator.pushReplacementNamed(context, '/home'); // Placeholder
+    if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
     setState(() => _isLoading = false);
   }
 
   Future<void> _loginWithFacebook() async {
     setState(() => _isLoading = true);
     print('Attempting Facebook Login...');
-    // **TODO: Implement Facebook Sign-In logic here**
     await Future.delayed(const Duration(seconds: 1)); // Simulate
-    if (mounted) Navigator.pushReplacementNamed(context, '/home'); // Placeholder
+    if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
     setState(() => _isLoading = false);
   }
 
   Future<void> _loginWithTwitter() async {
     setState(() => _isLoading = true);
     print('Attempting Twitter Login...');
-    // **TODO: Implement Twitter Sign-In logic here**
     await Future.delayed(const Duration(seconds: 1)); // Simulate
-    if (mounted) Navigator.pushReplacementNamed(context, '/home'); // Placeholder
+    if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
     setState(() => _isLoading = false);
   }
 
@@ -126,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
                         onPressed: _isLoading ? null : _loginWithEmail,
-                        child: _isLoading && (_emailController.text.isNotEmpty || _passwordController.text.isNotEmpty) // Basic check to only show loader for email
+                        child: _isLoading && (_emailController.text.isNotEmpty || _passwordController.text.isNotEmpty)
                             ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
                             : const Text('Login with Email'),
                       ),
@@ -145,7 +144,7 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
                 const SizedBox(height: 24.0),
-                if (_isLoading && _emailController.text.isEmpty && _passwordController.text.isEmpty) // Show global loader for social logins
+                if (_isLoading && _emailController.text.isEmpty && _passwordController.text.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(bottom: 16.0),
                     child: CircularProgressIndicator(),
@@ -153,7 +152,7 @@ class _LoginPageState extends State<LoginPage> {
                 SocialLoginButton(
                   text: 'Sign in with Google',
                   icon: const Icon(Icons.g_mobiledata, color: Colors.redAccent, size: 28),
-                  onPressed: _isLoading ? (){} : _loginWithGoogle,
+                  onPressed: _isLoading ? () {} : _loginWithGoogle,
                   backgroundColor: Colors.white,
                   textColor: Colors.black87,
                 ),
@@ -161,15 +160,15 @@ class _LoginPageState extends State<LoginPage> {
                 SocialLoginButton(
                   text: 'Sign in with Facebook',
                   icon: const Icon(Icons.facebook, color: Colors.white, size: 24),
-                  onPressed: _isLoading ? (){} : _loginWithFacebook,
+                  onPressed: _isLoading ? () {} : _loginWithFacebook,
                   backgroundColor: const Color(0xFF1877F2),
                   textColor: Colors.white,
                 ),
                 const SizedBox(height: 12.0),
                 SocialLoginButton(
                   text: 'Sign in with Twitter',
-                  icon: const Icon(Icons.flutter_dash, color: Colors.white, size: 24), // Placeholder
-                  onPressed: _isLoading ? (){} : _loginWithTwitter,
+                  icon: const Icon(Icons.flutter_dash, color: Colors.white, size: 24),
+                  onPressed: _isLoading ? () {} : _loginWithTwitter,
                   backgroundColor: const Color(0xFF1DA1F2),
                   textColor: Colors.white,
                 ),

@@ -40,7 +40,7 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
+  static final FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyBq0xgB7_3PkdjF1FVeN0kJ8a2C2KNKmnk',
     appId: '1:334122075796:web:93ec9426e1fc1b8b035681',
     messagingSenderId: '334122075796',
@@ -50,7 +50,7 @@ class DefaultFirebaseOptions {
     measurementId: 'G-2Y39CTQ80E',
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
+  static final FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyB9ltBRDtgUXemhwE_4JCfb79TXgaibKY4',
     appId: '1:334122075796:android:64b97ce081387273035681',
     messagingSenderId: '334122075796',
@@ -58,7 +58,7 @@ class DefaultFirebaseOptions {
     storageBucket: 'debbie-expense.firebasestorage.app',
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
+  static final FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDzW45wq8ur3HhTr4tpY6Pxymy0lhOu_Po',
     appId: '1:334122075796:ios:b6112aee2495e20e035681',
     messagingSenderId: '334122075796',
@@ -67,7 +67,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.debbieProject',
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
+  static final FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDzW45wq8ur3HhTr4tpY6Pxymy0lhOu_Po',
     appId: '1:334122075796:ios:b6112aee2495e20e035681',
     messagingSenderId: '334122075796',
@@ -76,7 +76,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.debbieProject',
   );
 
-  static const FirebaseOptions windows = FirebaseOptions(
+  static final FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyBq0xgB7_3PkdjF1FVeN0kJ8a2C2KNKmnk',
     appId: '1:334122075796:web:08098e2ac2c27274035681',
     messagingSenderId: '334122075796',

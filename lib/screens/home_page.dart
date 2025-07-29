@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:debbie_project/models/transaction_model.dart';
-
-// Screen Imports
-import 'add_expense_screen.dart';
-import 'set_budget_screen.dart';
-import 'savings_feature_screen.dart';
-import 'transactions_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/expense_provider.dart';
+import '../providers/budget_provider.dart';
+import '../models/expense_model.dart';
+import '../widgets/enhanced_refresh_indicator.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,304 +14,389 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;  // Initialize to 0 so it starts on AddExpenseScreen
-  double _monthlyBudget = 50000;  // You can initialize to 0 or load from saved data
-  List<Transaction> _transactions = [];
-
-  Map<String, double> _currentExpensesPerCategory = {};
-  double _totalExpensesFromCategories = 0.0;
-
-  // Calculates total withdrawals by summing withdrawal type transactions
-  double get _totalWithdrawals => _transactions
-      .where((t) => t.type == TransactionType.withdrawal)
-      .fold(0.0, (sum, item) => sum + item.amount);
-
-  // Balance after withdrawals
-  double get _currentBalanceAfterWithdrawals => _monthlyBudget - _totalWithdrawals;
-
-  late List<Widget> _pages;
-
   @override
   void initState() {
     super.initState();
-
-    // Load initial example data:
-    _transactions = [
-      Transaction(
-        id: '1',
-        title: 'Groceries',
-        category: 'Food',
-        amount: 5000,
-        date: DateTime.now().subtract(const Duration(days: 2)),
-        type: TransactionType.expense,
-      ),
-      Transaction(
-        id: '2',
-        title: 'Bus Fare',
-        category: 'Transport',
-        amount: 500,
-        date: DateTime.now().subtract(const Duration(days: 1)),
-        type: TransactionType.expense,
-      ),
-    ];
-
-    _initializePages();
-  }
-
-  // Initialize the pages with callbacks for communication
-  void _initializePages() {
-    _pages = [
-      AddExpenseScreen(
-        initialExpenses: _currentExpensesPerCategory,
-        onExpensesSubmitted: (categorizedExpenses, total) {
-          setState(() {
-            _currentExpensesPerCategory = categorizedExpenses;
-            _totalExpensesFromCategories = total;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  'Total for categories: ${_formatCurrency(total)} calculated. Go to "Budget" to withdraw.'),
-            ),
-          );
-        },
-      ),
-      SetBudgetScreen(
-        currentMonthlyBudget: _monthlyBudget,
-        calculatedExpensesFromAddTab: _totalExpensesFromCategories,
-        currentAvailableBalance: _currentBalanceAfterWithdrawals,
-        onBudgetSet: (newBudget) {
-          setState(() {
-            _monthlyBudget = newBudget;
-            _initializePages();  // Refresh pages so values update properly
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Monthly budget updated to: ${_formatCurrency(newBudget)}'),
-            ),
-          );
-        },
-        onWithdrawFromBudget: (amountInputByUser) {
-          if (amountInputByUser <= 0) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Amount must be positive.')),
-            );
-            return;
-          }
-          if (amountInputByUser > _currentBalanceAfterWithdrawals) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Exceeds available balance of ${_formatCurrency(_currentBalanceAfterWithdrawals)}.'),
-              ),
-            );
-            return;
-          }
-
-          _addTransaction(
-            Transaction(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              title: 'Withdrawal from Budget',
-              category: 'Budget Withdrawal',
-              amount: amountInputByUser,
-              date: DateTime.now(),
-              type: TransactionType.withdrawal,
-            ),
-          );
-          _initializePages();
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${_formatCurrency(amountInputByUser)} withdrawn. New balance: ${_formatCurrency(_currentBalanceAfterWithdrawals)}'),
-            ),
-          );
-        },
-      ),
-      TransactionsScreen(transactions: _transactions),
-      SavingsFeatureScreen(
-        availableBalanceForSavings: _currentBalanceAfterWithdrawals,
-        onSaveAttempted: (amountToSave) {
-          if (amountToSave > 0 && amountToSave <= _currentBalanceAfterWithdrawals) {
-            _addTransaction(
-              Transaction(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                title: "Moved to Savings",
-                category: "Savings",
-                amount: amountToSave,
-                date: DateTime.now(),
-                type: TransactionType.withdrawal,
-              ),
-            );
-            setState(() => _initializePages());
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Congrats! ${_formatCurrency(amountToSave)} notionally saved!'),
-              ),
-            );
-          } else if (amountToSave > _currentBalanceAfterWithdrawals) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Cannot save more than available balance.')),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Enter a valid amount to save.')),
-            );
-          }
-        },
-      ),
-    ];
-  }
-
-  void _addTransaction(Transaction transaction) {
-    setState(() {
-      _transactions.add(transaction);
-      _transactions.sort((a, b) => b.date.compareTo(a.date));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
+      
+      if (authProvider.user != null) {
+        expenseProvider.loadUserExpenses(authProvider.user!.uid);
+      }
     });
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  String _formatCurrency(double amount) => 'FCFA ${amount.toStringAsFixed(2)}';
-
-  Widget _buildUniqueHomeContent(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Column(
-              children: [
-                Icon(Icons.account_balance_wallet_outlined, size: 80, color: colorScheme.primary),
-                const SizedBox(height: 20),
-                Text("Welcome to XTrackr!",
-                    style: textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.primary,
-                    )),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 3,
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _summaryRow("Monthly Budget", _formatCurrency(_monthlyBudget), color: Colors.blueAccent),
-                  const Divider(height: 30),
-                  _summaryRow("Available Balance", _formatCurrency(_currentBalanceAfterWithdrawals), color: Colors.green.shade700),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          Text("Quick Actions", style: textTheme.titleLarge),
-          const SizedBox(height: 16),
-          GridView.count(
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 1.1,
-            children: [
-              _actionCard(icon: Icons.add, label: 'Add Expense', onTap: () => _onItemTapped(0), color: Colors.orange),
-              _actionCard(icon: Icons.pie_chart, label: 'Manage Budget', onTap: () => _onItemTapped(1), color: Colors.blue),
-              _actionCard(icon: Icons.receipt_long, label: 'Transactions', onTap: () => _onItemTapped(2), color: Colors.deepPurple),
-              _actionCard(icon: Icons.savings, label: 'Savings', onTap: () => _onItemTapped(3), color: Colors.green),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryRow(String label, String value, {required Color color}) {
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        Text(value, style: textTheme.headlineSmall?.copyWith(color: color, fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
-  Widget _actionCard({required IconData icon, required String label, required VoidCallback onTap, required Color color}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 2,
-        color: color.withOpacity(0.1),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 40, color: color),
-              const SizedBox(height: 8),
-              Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _refreshData() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
+    
+    if (authProvider.user != null) {
+      await expenseProvider.loadUserExpenses(authProvider.user!.uid);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    return Consumer3<AuthProvider, ExpenseProvider, BudgetProvider>(
+      builder: (context, authProvider, expenseProvider, budgetProvider, child) {
+        final textTheme = Theme.of(context).textTheme;
+        final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_getPageTitle(_selectedIndex)),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        automaticallyImplyLeading: false,  // Remove back button on main screen
+        // Reset inactivity timer on user interaction
+        authProvider.resetInactivityTimer();
+
+        final totalExpenses = expenseProvider.totalExpenses;
+        final budgetTotal = authProvider.userData?['monthlyBudget']?.toDouble() ?? 50000;
+        final availableBalance = budgetTotal - totalExpenses;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('XTrackr Home'),
+            automaticallyImplyLeading: false,
+            actions: [
+              IconButton(
+                onPressed: () => _showLogoutDialog(context, authProvider),
+                icon: const Icon(Icons.logout),
+                tooltip: 'Logout',
+              ),
+            ],
+          ),
+          body: EnhancedRefreshIndicator(
+            onRefresh: _refreshData,
+            refreshMessage: 'Home data updated successfully!',
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Welcome Header
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [colorScheme.primary, colorScheme.primary.withOpacity(0.7)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${authProvider.getGreeting()}, ${authProvider.userData?['fullName'] ?? authProvider.displayName}!',
+                            style: textTheme.titleLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Welcome to XTrackr - Your Personal Finance Tracker',
+                            style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Financial Overview
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.account_balance_wallet, color: colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text('Financial Overview', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _summaryRow('Monthly Budget', 'FCFA ${budgetTotal.toStringAsFixed(2)}', Colors.blue),
+                          const SizedBox(height: 12),
+                          _summaryRow('Total Expenses', 'FCFA ${totalExpenses.toStringAsFixed(2)}', Colors.red),
+                          const SizedBox(height: 12),
+                          _summaryRow('Available Balance', 'FCFA ${availableBalance.toStringAsFixed(2)}', 
+                              availableBalance >= 0 ? Colors.green : Colors.red),
+                          const SizedBox(height: 16),
+                          LinearProgressIndicator(
+                            value: budgetTotal > 0 ? (totalExpenses / budgetTotal).clamp(0, 1) : 0,
+                            backgroundColor: Colors.grey.shade300,
+                            color: totalExpenses > budgetTotal ? Colors.red : colorScheme.primary,
+                            minHeight: 8,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${budgetTotal > 0 ? ((totalExpenses / budgetTotal) * 100).clamp(0, 100).toStringAsFixed(1) : "0"}% of budget used',
+                            style: textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Quick Stats
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Quick Stats', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _statCard(
+                                  'Transactions',
+                                  '${expenseProvider.expenses.length}',
+                                  Icons.receipt_long,
+                                  Colors.blue,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _statCard(
+                                  'Categories',
+                                  '${expenseProvider.categoryTotals.length}',
+                                  Icons.category,
+                                  Colors.purple,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _statCard(
+                                  'Avg/Day',
+                                  'FCFA ${expenseProvider.expenses.isNotEmpty ? (totalExpenses / 30).toStringAsFixed(0) : "0"}',
+                                  Icons.calendar_today,
+                                  Colors.green,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _statCard(
+                                  'This Month',
+                                  'FCFA ${totalExpenses.toStringAsFixed(0)}',
+                                  Icons.trending_up,
+                                  Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Recent Transactions
+                  if (expenseProvider.expenses.isNotEmpty) ...[
+                    Text('Recent Transactions', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Column(
+                        children: expenseProvider.expenses.take(5).map((expense) {
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: _getCategoryColor(expense.category),
+                              child: Icon(
+                                _getCategoryIcon(expense.category),
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(expense.description),
+                            subtitle: Text('${expense.category} • ${expense.date.day}/${expense.date.month}/${expense.date.year}'),
+                            trailing: Text(
+                              'FCFA ${expense.amount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red.shade600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ] else ...[
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey.shade400),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No transactions yet',
+                                style: textTheme.titleMedium?.copyWith(color: Colors.grey.shade600),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Start tracking your expenses to see them here',
+                                style: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade500),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _summaryRow(String label, String value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: color,
+            fontSize: 16,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _statCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
-      body: _selectedIndex == 0
-          ? _pages[0]
-          : IndexedStack(index: _selectedIndex, children: _pages),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: colorScheme.primary,
-        unselectedItemColor: Colors.grey.shade600,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add Expense'),
-          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: 'Budget'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'Transactions'),
-          BottomNavigationBarItem(icon: Icon(Icons.savings), label: 'Savings'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  String _getPageTitle(int index) {
-    switch (index) {
-      case 0:
-        return 'Add New Expense';
-      case 1:
-        return 'Manage Budget';
-      case 2:
-        return 'Transaction History';
-      case 3:
-        return 'Savings';
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case 'Food & Drinks':
+        return Colors.orange;
+      case 'Transport':
+        return Colors.blue;
+      case 'Academics (Books, Fees)':
+        return Colors.purple;
+      case 'Utilities (Rent, Bills)':
+        return Colors.green;
+      case 'Personal Care':
+        return Colors.pink;
+      case 'Entertainment':
+        return Colors.red;
+      case 'Clothing':
+        return Colors.indigo;
       default:
-        return 'XTrackr';
+        return Colors.grey;
     }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Food & Drinks':
+        return Icons.restaurant;
+      case 'Transport':
+        return Icons.directions_car;
+      case 'Academics (Books, Fees)':
+        return Icons.school;
+      case 'Utilities (Rent, Bills)':
+        return Icons.home;
+      case 'Personal Care':
+        return Icons.spa;
+      case 'Entertainment':
+        return Icons.movie;
+      case 'Clothing':
+        return Icons.shopping_bag;
+      default:
+        return Icons.category;
+    }
+  }
+
+  void _showLogoutDialog(BuildContext context, AuthProvider authProvider) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                authProvider.signOut();
+              },
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

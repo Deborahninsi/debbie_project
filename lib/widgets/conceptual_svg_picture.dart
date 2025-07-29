@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui; // For ui.Picture, ui.PictureRecorder
+// For ui.Picture, ui.PictureRecorder
 
 // --- THIS IS A HIGHLY SIMPLIFIED AND NON-FUNCTIONAL CONCEPTUAL OUTLINE ---
 // --- IT DOES NOT ACTUALLY RENDER SVGS. USE THE 'flutter_svg' PACKAGE FOR REAL SVG SUPPORT ---

@@ -1,33 +1,35 @@
-import 'package:debbie_project/screens/dashboard_screen.dart';
-import 'package:debbie_project/screens/login_page.dart';
-import 'package:debbie_project/screens/signup_page.dart';
-import 'package:debbie_project/screens/welcome_page.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'firebase_options.dart';
 
 // Providers
-import 'package:debbie_project/providers/budget_provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/budget_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/expense_provider.dart';
+import 'providers/refresh_provider.dart';
 
 // Screens
-import 'package:debbie_project/screens/auth/welcome_page.dart';
-import 'package:debbie_project/screens/auth/login_page.dart';
-import 'package:debbie_project/screens/auth/signup_page.dart';
-import 'package:debbie_project/screens/dashboard/dashboard_screen.dart';
-import 'package:debbie_project/screens/edit_profile_screen.dart';
-import 'package:debbie_project/screens/change_password_screen.dart';
-import 'package:debbie_project/screens/setting_page.dart';
-import 'package:debbie_project/screens/add_expense_screen.dart';
-import 'package:debbie_project/screens/set_budget_screen.dart';
-import 'package:debbie_project/screens/withdraw_screen.dart';
-import 'package:debbie_project/screens/transactions_screen.dart';
+import 'screens/welcome_page.dart';
+import 'screens/login_page.dart';
+import 'screens/signup_page.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/setting_page.dart';
+import 'screens/edit_profile_screen.dart';
+import 'screens/change_password_screen.dart';
+import 'screens/add_expense_screen.dart';
+import 'screens/transactions_screen.dart';
+import 'screens/set_budget_screen.dart';
+import 'screens/savings_feature_screen.dart';
 
-void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => BudgetProvider(),
-      child: const XTrackrApp(),
-    ),
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  runApp(const XTrackrApp());
 }
 
 class XTrackrApp extends StatelessWidget {
@@ -35,24 +37,57 @@ class XTrackrApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'XTrackr',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-        useMaterial3: true,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => BudgetProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+        ChangeNotifierProvider(create: (_) => RefreshProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return Consumer<AuthProvider>(
+            builder: (context, authProvider, child) {
+              return MaterialApp(
+                title: 'XTrackr',
+                debugShowCheckedModeBanner: false,
+                theme: themeProvider.themeData,
+                home: AuthWrapper(),
+                routes: {
+                  '/welcome': (context) => const WelcomePage(),
+                  '/login': (context) => const LoginPage(),
+                  '/signup': (context) => const SignupPage(),
+                  '/dashboard': (context) => const DashboardScreen(),
+                  '/settings': (context) => const SettingsScreen(),
+                  '/edit-profile': (context) => const EditProfileScreen(),
+                  '/change-password': (context) => const ChangePasswordScreen(),
+                  '/add-expense': (context) => const AddExpenseScreen(),
+                  '/transactions': (context) => const TransactionsScreen(),
+                  '/set-budget': (context) => const SetBudgetScreen(),
+                  '/savings': (context) => const SavingsFeatureScreen(),
+                },
+              );
+            },
+          );
+        },
       ),
-      initialRoute: '/welcome',
-      routes: {
-        '/welcome': (context) => const WelcomePage(),
-        '/login': (context) => const LoginPage(),
-        '/signup': (context) => const SignupPage(),
-        '/dashboard': (context) => const DashboardScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/edit-profile': (context) => const EditProfileScreen(),
-        '/change-password': (context) => const ChangePasswordScreen(),
+    );
+  }
+}
 
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        if (authProvider.isAuthenticated) {
+          return const DashboardScreen();
+        } else {
+          return const WelcomePage();
+        }
       },
     );
   }

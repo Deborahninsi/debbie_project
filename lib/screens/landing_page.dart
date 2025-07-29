@@ -4,6 +4,8 @@ import 'login_page.dart';
 import 'signup_page.dart';
 
 class LandingPage extends StatelessWidget {
+  const LandingPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,22 +61,22 @@ class LandingPage extends StatelessWidget {
                       children: [
                         ElevatedButton(
                           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SignupPage())),
-                          child: Text("Create an account", style: TextStyle(fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.black,
                             minimumSize: Size(double.infinity, 50),
                           ),
+                          child: Text("Create an account", style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                         SizedBox(height: 10),
                         OutlinedButton(
                           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LoginPage())),
-                          child: Text("Login"),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: BorderSide(color: Colors.white),
                             minimumSize: Size(double.infinity, 50),
                           ),
+                          child: Text("Login"),
                         ),
                       ],
                     ),

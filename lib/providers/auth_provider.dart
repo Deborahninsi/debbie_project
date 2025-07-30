@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import 'dart:async';
+import 'dart:developer';
+import 'package:flutter/foundation.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -24,6 +26,8 @@ class AuthProvider extends ChangeNotifier {
     _authService.authStateChanges.listen((User? user) async {
       _user = user;
       if (user != null) {
+        // Ensure user document exists
+        await _authService.ensureUserDocument(user);
         await _loadUserData();
         _startInactivityTimer();
         _startActivityUpdateTimer();
@@ -37,8 +41,14 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _loadUserData() async {
     if (_user != null) {
-      _userData = await _authService.getUserData(_user!.uid);
-      notifyListeners();
+      try {
+        _userData = await _authService.getUserData(_user!.uid);
+        notifyListeners();
+      } catch (e) {
+        if (kDebugMode) {
+          log('Error loading user data: $e');
+        }
+      }
     }
   }
 
@@ -81,16 +91,18 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      // Attempt to sign up
       await _authService.signUpWithEmailAndPassword(
         email: email,
         password: password,
         username: username,
       );
-      
-      // Sign out immediately after registration so user needs to login
-      await _authService.signOut();
-      
+
+      // No immediate signOut here.
+      // The _initializeAuth listener will pick up the new user state.
       return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message;
     } catch (e) {
       return e.toString();
     } finally {
@@ -112,6 +124,8 @@ class AuthProvider extends ChangeNotifier {
         password: password,
       );
       return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message;
     } catch (e) {
       return e.toString();
     } finally {
@@ -125,10 +139,19 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      // Only one robust Google sign-in attempt
       await _authService.signInWithGoogle();
       return null;
+    } on FirebaseAuthException catch (e) {
+      if (kDebugMode) {
+        log('Google Sign-in Error: ${e.code} - ${e.message}');
+      }
+      return e.message;
     } catch (e) {
-      return e.toString();
+      if (kDebugMode) {
+        log('Unexpected Google sign-in error: $e');
+      }
+      return 'Google sign-in failed. Please try again or use email login.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -141,10 +164,11 @@ class AuthProvider extends ChangeNotifier {
         await _authService.updateUserData(_user!.uid, data);
         // Reload user data to update local state
         await _loadUserData();
-        notifyListeners();
       } catch (e) {
-        print('Error updating user data: $e');
-        throw e;
+        if (kDebugMode) {
+          log('Error updating user data: $e');
+        }
+        rethrow;
       }
     }
   }
@@ -159,6 +183,8 @@ class AuthProvider extends ChangeNotifier {
         newPassword: newPassword,
       );
       return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message;
     } catch (e) {
       return e.toString();
     }
@@ -171,12 +197,14 @@ class AuthProvider extends ChangeNotifier {
 
   String getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) {
+    if (hour >= 5 && hour < 12) {
       return 'Good Morning';
-    } else if (hour < 17) {
+    } else if (hour >= 12 && hour < 17) {
       return 'Good Afternoon';
-    } else {
+    } else if (hour >= 17 && hour < 21) {
       return 'Good Evening';
+    } else {
+      return 'Good Night';
     }
   }
 

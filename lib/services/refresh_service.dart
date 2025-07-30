@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/expense_provider.dart';
-import '../services/analytics_service.dart';
 
 class RefreshService {
   static Future<void> refreshAllData(BuildContext context) async {

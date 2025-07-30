@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/expense_provider.dart';
 import '../providers/budget_provider.dart';
-import '../models/expense_model.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
 
 class HomePage extends StatefulWidget {

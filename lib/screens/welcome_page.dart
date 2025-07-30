@@ -30,7 +30,7 @@ class WelcomePage extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: Image.asset(
-                      'assets/xtrackr.png',
+                      'assets/images/xtrackr.png',
                       fit: BoxFit.cover,
                       width: double.infinity,
                       errorBuilder: (context, error, stackTrace) {
@@ -165,9 +165,9 @@ class WelcomePage extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _featureIcon(Icons.track_changes, 'Track'),
-                          _featureIcon(Icons.pie_chart, 'Budget'),
-                          _featureIcon(Icons.savings, 'Save'),
+                          _featureIcon(Icons.track_changes,""),
+                          _featureIcon(Icons.pie_chart,""),
+                          _featureIcon(Icons.savings,""),
                         ],
                       ),
                       const SizedBox(height: 16),

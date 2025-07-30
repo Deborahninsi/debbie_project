@@ -36,6 +36,11 @@ class _LoginPageState extends State<LoginPage> {
 
       if (error != null) {
         setState(() => _errorMessage = error);
+      } else {
+        // Navigation will be handled automatically by AuthWrapper
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/dashboard', (route) => false);
+        }
       }
     }
   }
@@ -46,7 +51,38 @@ class _LoginPageState extends State<LoginPage> {
     final error = await authProvider.signInWithGoogle();
     if (error != null) {
       setState(() => _errorMessage = error);
+      
+      // Show a more user-friendly dialog for Google sign-in issues
+      if (error.contains('PigeonUserDetails') || error.contains('experiencing issues')) {
+        _showGoogleSignInIssueDialog();
+      }
+    } else {
+      // Navigation will be handled automatically by AuthWrapper
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/dashboard', (route) => false);
+      }
     }
+  }
+
+  void _showGoogleSignInIssueDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Google Sign-In Issue'),
+          content: const Text(
+            'Google Sign-In is currently experiencing technical difficulties. '
+            'Please use email login instead, or try Google Sign-In again later.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -208,7 +244,7 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                   )
                                 : const Text(
-                                    'Login with Email',
+                                    'Login',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,

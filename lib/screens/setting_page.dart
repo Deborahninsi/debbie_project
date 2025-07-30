@@ -1,9 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/auth_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.signOut();
+                // Navigation will be handled automatically by AuthWrapper
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Logout', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,10 +41,64 @@ class SettingsScreen extends StatelessWidget {
         title: const Text("Settings"),
         automaticallyImplyLeading: false,
       ),
-      body: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
+      body: Consumer2<ThemeProvider, AuthProvider>(
+        builder: (context, themeProvider, authProvider, child) {
           return ListView(
             children: [
+              // User Info Section
+              if (authProvider.user != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundImage: authProvider.userData?['profileImageUrl'] != null && 
+                                         authProvider.userData!['profileImageUrl'].isNotEmpty
+                            ? NetworkImage(authProvider.userData!['profileImageUrl'])
+                            : null,
+                        child: authProvider.userData?['profileImageUrl'] == null || 
+                               authProvider.userData!['profileImageUrl'].isEmpty
+                            ? Text(
+                                authProvider.displayName.isNotEmpty 
+                                    ? authProvider.displayName[0].toUpperCase() 
+                                    : 'U',
+                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              authProvider.displayName,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              authProvider.user!.email ?? '',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(),
+              ],
+
+              // Theme Settings
               SwitchListTile(
                 title: const Text("Dark Theme"),
                 subtitle: const Text("Toggle between light and dark mode"),
@@ -26,6 +109,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const Divider(),
+
+              // Account Settings
               ListTile(
                 leading: const Icon(Icons.lock),
                 title: const Text("Change Password"),
@@ -34,6 +119,8 @@ class SettingsScreen extends StatelessWidget {
                 onTap: () => Navigator.pushNamed(context, '/change-password'),
               ),
               const Divider(),
+
+              // App Info
               ListTile(
                 leading: const Icon(Icons.article),
                 title: const Text("Terms & Conditions"),
@@ -56,6 +143,16 @@ class SettingsScreen extends StatelessWidget {
                 trailing: const Icon(Icons.arrow_forward_ios),
                 onTap: () => _showAboutDialog(context),
               ),
+              const Divider(),
+
+              // Logout Section
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text("Logout", style: TextStyle(color: Colors.red)),
+                subtitle: const Text("Sign out of your account"),
+                onTap: () => _showLogoutDialog(context),
+              ),
+              const SizedBox(height: 20),
             ],
           );
         },
@@ -63,6 +160,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  // Keep existing dialog methods...
   void _showTermsDialog(BuildContext context) {
     showDialog(
       context: context,

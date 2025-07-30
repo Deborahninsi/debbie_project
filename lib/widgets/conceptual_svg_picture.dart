@@ -213,7 +213,7 @@ void main() {
                 semanticsLabel: 'A green conceptual SVG icon',
               ),
               const SizedBox(height: 20),
-              MyConceptualSvgPicture.asset(
+              const MyConceptualSvgPicture.asset(
                 'assets/logos/my_logo.svg',
                 width: 150,
                 height: 70,
@@ -221,7 +221,7 @@ void main() {
                 fit: BoxFit.fitWidth,
               ),
               const SizedBox(height: 20),
-              MyConceptualSvgPicture.asset(
+              const MyConceptualSvgPicture.asset(
                 'assets/illustrations/hero_image_for_app.svg',
                 height: 120,
                 fit: BoxFit.contain,

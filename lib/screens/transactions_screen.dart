@@ -19,7 +19,7 @@ class TransactionsScreen extends StatefulWidget {
 class _TransactionsScreenState extends State<TransactionsScreen> {
   String _selectedCategory = 'All';
   DateTimeRange? _selectedDateRange;
-  
+
   final List<String> _categories = [
     'All',
     'Food & Drinks',
@@ -37,8 +37,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
-      
+      final expenseProvider =
+          Provider.of<ExpenseProvider>(context, listen: false);
+
       if (authProvider.user != null) {
         expenseProvider.loadUserExpenses(authProvider.user!.uid);
       }
@@ -50,14 +51,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
     // Filter by category
     if (_selectedCategory != 'All') {
-      filtered = filtered.where((expense) => expense.category == _selectedCategory).toList();
+      filtered = filtered
+          .where((expense) => expense.category == _selectedCategory)
+          .toList();
     }
 
     // Filter by date range
     if (_selectedDateRange != null) {
       filtered = filtered.where((expense) {
-        return expense.date.isAfter(_selectedDateRange!.start.subtract(const Duration(days: 1))) &&
-               expense.date.isBefore(_selectedDateRange!.end.add(const Duration(days: 1)));
+        return expense.date.isAfter(
+                _selectedDateRange!.start.subtract(const Duration(days: 1))) &&
+            expense.date
+                .isBefore(_selectedDateRange!.end.add(const Duration(days: 1)));
       }).toList();
     }
 
@@ -71,7 +76,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       lastDate: DateTime.now(),
       initialDateRange: _selectedDateRange,
     );
-    
+
     if (picked != null) {
       setState(() {
         _selectedDateRange = picked;
@@ -82,17 +87,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Future<void> _exportToPDF(List<Expense> expenses) async {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final userName = authProvider.userData?['fullName'] ?? authProvider.displayName;
-      
+      final userName =
+          authProvider.userData?['fullName'] ?? authProvider.displayName;
+
       // Create PDF document
       final pdf = pw.Document();
-      
+
       // Calculate totals
-      final totalAmount = expenses.fold(0.0, (sum, expense) => sum + expense.amount);
+      final totalAmount =
+          expenses.fold(0.0, (sum, expense) => sum + expense.amount);
       final categoryTotals = <String, double>{};
-      
+
       for (var expense in expenses) {
-        categoryTotals[expense.category] = 
+        categoryTotals[expense.category] =
             (categoryTotals[expense.category] ?? 0) + expense.amount;
       }
 
@@ -121,7 +128,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         ),
                         pw.SizedBox(height: 8),
                         pw.Text('Generated for: $userName'),
-                        pw.Text('Date: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}'),
+                        pw.Text(
+                            'Date: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}'),
                       ],
                     ),
                     pw.Container(
@@ -145,9 +153,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 20),
-              
+
               // Summary Section
               pw.Container(
                 padding: const pw.EdgeInsets.all(16),
@@ -209,9 +217,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ],
                 ),
               ),
-              
+
               pw.SizedBox(height: 20),
-              
+
               // Category Breakdown
               if (categoryTotals.isNotEmpty) ...[
                 pw.Text(
@@ -226,7 +234,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   border: pw.TableBorder.all(color: PdfColors.grey300),
                   children: [
                     pw.TableRow(
-                      decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                      decoration:
+                          const pw.BoxDecoration(color: PdfColors.grey200),
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
@@ -277,12 +286,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ),
                         ],
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
                 pw.SizedBox(height: 20),
               ],
-              
+
               // Transactions Table
               pw.Text(
                 'Transaction Details',
@@ -292,12 +301,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
               ),
               pw.SizedBox(height: 12),
-              
+
               if (expenses.isEmpty)
                 pw.Container(
                   padding: const pw.EdgeInsets.all(20),
                   child: pw.Center(
-                    child: pw.Text('No transactions found for the selected criteria.'),
+                    child: pw.Text(
+                        'No transactions found for the selected criteria.'),
                   ),
                 )
               else
@@ -312,7 +322,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   children: [
                     // Table Header
                     pw.TableRow(
-                      decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                      decoration:
+                          const pw.BoxDecoration(color: PdfColors.grey200),
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
@@ -372,7 +383,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ),
                         ],
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
             ];
@@ -420,7 +431,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _loadAnalytics() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
+    final expenseProvider =
+        Provider.of<ExpenseProvider>(context, listen: false);
 
     if (authProvider.user != null) {
       await expenseProvider.loadUserExpenses(authProvider.user!.uid);
@@ -439,10 +451,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         actions: [
           Consumer<ExpenseProvider>(
             builder: (context, expenseProvider, child) {
-              final filteredExpenses = _getFilteredExpenses(expenseProvider.expenses);
+              final filteredExpenses =
+                  _getFilteredExpenses(expenseProvider.expenses);
               return IconButton(
                 icon: const Icon(Icons.picture_as_pdf),
-                onPressed: filteredExpenses.isNotEmpty 
+                onPressed: filteredExpenses.isNotEmpty
                     ? () => _exportToPDF(filteredExpenses)
                     : null,
                 tooltip: 'Export to PDF',
@@ -457,8 +470,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final filteredExpenses = _getFilteredExpenses(expenseProvider.expenses);
-          final totalFiltered = filteredExpenses.fold(0.0, (sum, expense) => sum + expense.amount);
+          final filteredExpenses =
+              _getFilteredExpenses(expenseProvider.expenses);
+          final totalFiltered = filteredExpenses.fold(
+              0.0, (sum, expense) => sum + expense.amount);
 
           return RefreshIndicator(
             onRefresh: _loadAnalytics,
@@ -471,74 +486,100 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                value: _selectedCategory,
-                                decoration: const InputDecoration(
-                                  labelText: 'Category',
-                                  border: OutlineInputBorder(),
-                                ),
-                                items: _categories.map((category) {
-                                  return DropdownMenuItem(
-                                    value: category,
-                                    child: Text(category),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedCategory = value!;
-                                  });
-                                },
+                        // Category Filter
+                        DropdownButtonFormField<String>(
+                          value: _selectedCategory,
+                          decoration: const InputDecoration(
+                            labelText: 'Category',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          items: _categories.map((category) {
+                            return DropdownMenuItem(
+                              value: category,
+                              child: Text(
+                                category,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 14),
                               ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCategory = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Date Range Filter
+                        InkWell(
+                          onTap: _selectDateRange,
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              labelText: 'Date Range',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: InkWell(
-                                onTap: _selectDateRange,
-                                child: InputDecorator(
-                                  decoration: const InputDecoration(
-                                    labelText: 'Date Range',
-                                    border: OutlineInputBorder(),
-                                  ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.date_range,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
                                   child: Text(
                                     _selectedDateRange == null
                                         ? 'All dates'
                                         : '${_selectedDateRange!.start.day}/${_selectedDateRange!.start.month} - ${_selectedDateRange!.end.day}/${_selectedDateRange!.end.month}',
+                                    style: const TextStyle(fontSize: 14),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        
+                        // Summary and Actions Row
+                        Column(
                           children: [
-                            Text(
-                              'Total: FCFA ${totalFiltered.toStringAsFixed(2)}',
-                              style: textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.primary,
-                              ),
-                            ),
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
+                                Expanded(
+                                  child: Text(
+                                    'Total: FCFA ${totalFiltered.toStringAsFixed(2)}',
+                                    style: textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: colorScheme.primary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                                 if (filteredExpenses.isNotEmpty)
                                   ElevatedButton.icon(
                                     onPressed: () => _exportToPDF(filteredExpenses),
-                                    icon: const Icon(Icons.picture_as_pdf, size: 18),
-                                    label: const Text('Export PDF'),
+                                    icon: const Icon(Icons.picture_as_pdf, size: 16),
+                                    label: const Text('PDF', style: TextStyle(fontSize: 12)),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.red.shade600,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      minimumSize: const Size(60, 32),
                                     ),
                                   ),
-                                const SizedBox(width: 8),
-                                if (_selectedDateRange != null || _selectedCategory != 'All')
-                                  TextButton(
+                              ],
+                            ),
+                            if (_selectedDateRange != null || _selectedCategory != 'All')
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
                                     onPressed: () {
                                       setState(() {
                                         _selectedCategory = 'All';
@@ -547,14 +588,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                     },
                                     child: const Text('Clear Filters'),
                                   ),
-                              ],
-                            ),
+                                ),
+                              ),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  
+
                   // Transactions List
                   SizedBox(
                     height: MediaQuery.of(context).size.height - 300,
@@ -565,7 +606,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             child: SingleChildScrollView(
                               physics: const AlwaysScrollableScrollPhysics(),
                               child: SizedBox(
-                                height: MediaQuery.of(context).size.height * 0.5,
+                                height:
+                                    MediaQuery.of(context).size.height * 0.5,
                                 child: Center(
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -608,7 +650,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   margin: const EdgeInsets.only(bottom: 8),
                                   child: ListTile(
                                     leading: CircleAvatar(
-                                      backgroundColor: _getCategoryColor(expense.category),
+                                      backgroundColor:
+                                          _getCategoryColor(expense.category),
                                       child: Icon(
                                         _getCategoryIcon(expense.category),
                                         color: Colors.white,
@@ -617,10 +660,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                     ),
                                     title: Text(
                                       expense.description,
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600),
                                     ),
                                     subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(expense.category),
                                         Text(
@@ -633,8 +678,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                       ],
                                     ),
                                     trailing: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
                                       children: [
                                         Text(
                                           'FCFA ${expense.amount.toStringAsFixed(2)}',
@@ -646,7 +693,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                         ),
                                       ],
                                     ),
-                                    onLongPress: () => _showDeleteDialog(expense),
+                                    onLongPress: () =>
+                                        _showDeleteDialog(expense),
                                   ),
                                 );
                               },
@@ -709,7 +757,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Expense'),
-        content: Text('Are you sure you want to delete "${expense.description}"?'),
+        content:
+            Text('Are you sure you want to delete "${expense.description}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -718,11 +767,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
-              final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
-              
+              final authProvider =
+                  Provider.of<AuthProvider>(context, listen: false);
+              final expenseProvider =
+                  Provider.of<ExpenseProvider>(context, listen: false);
+
               try {
-                await expenseProvider.deleteExpense(expense.id, authProvider.user!.uid);
+                await expenseProvider.deleteExpense(
+                    expense.id, authProvider.user!.uid);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

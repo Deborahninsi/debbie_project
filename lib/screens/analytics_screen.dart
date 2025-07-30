@@ -133,7 +133,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 height: 200,
                                 child: LineChart(
                                   LineChartData(
-                                    gridData: FlGridData(show: true),
+                                    gridData: const FlGridData(show: true),
                                     titlesData: FlTitlesData(
                                       leftTitles: AxisTitles(
                                         sideTitles: SideTitles(
@@ -164,8 +164,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                           },
                                         ),
                                       ),
-                                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                     ),
                                     borderData: FlBorderData(show: true),
                                     lineBarsData: [
@@ -176,7 +176,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                         isCurved: true,
                                         color: colorScheme.primary,
                                         barWidth: 3,
-                                        dotData: FlDotData(show: true),
+                                        dotData: const FlDotData(show: true),
                                       ),
                                     ],
                                   ),
@@ -313,7 +313,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     ],
                                   ),
                                 );
-                              }).toList(),
+                              }),
                             ],
                           ),
                         ),

@@ -53,19 +53,51 @@ class XTrackrApp extends StatelessWidget {
                 title: 'XTrackr',
                 debugShowCheckedModeBanner: false,
                 theme: themeProvider.themeData,
-                home: AuthWrapper(),
-                routes: {
-                  '/welcome': (context) => const WelcomePage(),
-                  '/login': (context) => const LoginPage(),
-                  '/signup': (context) => const SignupPage(),
-                  '/dashboard': (context) => const DashboardScreen(),
-                  '/settings': (context) => const SettingsScreen(),
-                  '/edit-profile': (context) => const EditProfileScreen(),
-                  '/change-password': (context) => const ChangePasswordScreen(),
-                  '/add-expense': (context) => const AddExpenseScreen(),
-                  '/transactions': (context) => const TransactionsScreen(),
-                  '/set-budget': (context) => const SetBudgetScreen(),
-                  '/savings': (context) => const SavingsFeatureScreen(),
+                home: const AuthWrapper(),
+                onGenerateRoute: (settings) {
+                  // Route guard - check authentication for protected routes
+                  final protectedRoutes = [
+                    '/dashboard',
+                    '/settings',
+                    '/edit-profile',
+                    '/change-password',
+                    '/add-expense',
+                    '/transactions',
+                    '/set-budget',
+                    '/savings',
+                  ];
+
+                  if (protectedRoutes.contains(settings.name) && !authProvider.isAuthenticated) {
+                    return MaterialPageRoute(builder: (_) => const WelcomePage());
+                  }
+
+                  // Handle routes normally
+                  switch (settings.name) {
+                    case '/welcome':
+                      return MaterialPageRoute(builder: (_) => const WelcomePage());
+                    case '/login':
+                      return MaterialPageRoute(builder: (_) => const LoginPage());
+                    case '/signup':
+                      return MaterialPageRoute(builder: (_) => const SignupPage());
+                    case '/dashboard':
+                      return MaterialPageRoute(builder: (_) => const DashboardScreen());
+                    case '/settings':
+                      return MaterialPageRoute(builder: (_) => const SettingsScreen());
+                    case '/edit-profile':
+                      return MaterialPageRoute(builder: (_) => const EditProfileScreen());
+                    case '/change-password':
+                      return MaterialPageRoute(builder: (_) => const ChangePasswordScreen());
+                    case '/add-expense':
+                      return MaterialPageRoute(builder: (_) => const AddExpenseScreen());
+                    case '/transactions':
+                      return MaterialPageRoute(builder: (_) => const TransactionsScreen());
+                    case '/set-budget':
+                      return MaterialPageRoute(builder: (_) => const SetBudgetScreen());
+                    case '/savings':
+                      return MaterialPageRoute(builder: (_) => const SavingsFeatureScreen());
+                    default:
+                      return MaterialPageRoute(builder: (_) => const WelcomePage());
+                  }
                 },
               );
             },
@@ -83,11 +115,22 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        if (authProvider.isAuthenticated) {
-          return const DashboardScreen();
-        } else {
-          return const WelcomePage();
+        // Show loading indicator while checking auth state
+        if (authProvider.isLoading) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
         }
+        
+        // If user is authenticated, show dashboard
+        if (authProvider.isAuthenticated && authProvider.user != null) {
+          return const DashboardScreen();
+        } 
+        
+        // If not authenticated, show welcome page
+        return const WelcomePage();
       },
     );
   }

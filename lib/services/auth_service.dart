@@ -1,3 +1,5 @@
+import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -5,7 +7,11 @@ import 'package:google_sign_in/google_sign_in.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+    // Add these for better compatibility
+    signInOption: SignInOption.standard,
+  );
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -29,7 +35,7 @@ class AuthService {
       await result.user?.updateDisplayName(username);
 
       // Create user document in Firestore
-      await _createUserDocument(result.user!, username);
+      await createUserDocument(result.user!, username);
 
       return result;
     } on FirebaseAuthException catch (e) {
@@ -47,6 +53,10 @@ class AuthService {
         email: email,
         password: password,
       );
+      // Ensure user document exists for existing users too
+      if (result.user != null) {
+        await ensureUserDocument(result.user!);
+      }
       return result;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
@@ -56,61 +66,129 @@ class AuthService {
   // Sign in with Google
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      // Sign out first to ensure clean state
+      // Clear any existing sign-in state from GoogleSignIn
       await _googleSignIn.signOut();
-      
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        throw Exception('Google sign in was cancelled by user');
+
+      // Trigger the Google Sign In flow with error handling
+      GoogleSignInAccount? googleUser;
+      try {
+        googleUser = await _googleSignIn.signIn();
+      } catch (e) {
+        if (e.toString().contains('PigeonUserDetails') || e.toString().contains('List<Object?>')) {
+          // Clear any cached sign-in attempts
+          await _googleSignIn.signOut();
+          // Try one more time after clearing cache
+          googleUser = await _googleSignIn.signIn();
+        } else {
+          rethrow;
+        }
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
-      if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-        throw Exception('Failed to get Google authentication tokens');
+      if (googleUser == null) {
+        // User cancelled the sign-in flow
+        throw FirebaseAuthException(
+          code: 'user-cancelled',
+          message: 'Google sign in was cancelled by the user.',
+        );
       }
-      
-      final credential = GoogleAuthProvider.credential(
+
+      // Use a different approach to get authentication
+      GoogleSignInAuthentication googleAuth;
+      try {
+        googleAuth = await googleUser.authentication;
+      } catch (e) {
+        if (kDebugMode) {
+          log('Error getting Google auth: $e');
+        }
+        // Fallback to direct token retrieval
+        final auth = await _googleSignIn.currentUser?.authentication;
+        if (auth == null) {
+          throw FirebaseAuthException(
+            code: 'google-auth-failed',
+            message: 'Failed to authenticate with Google.',
+          );
+        }
+        googleAuth = auth;
+      }
+
+      if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+        throw FirebaseAuthException(
+          code: 'invalid-google-credentials',
+          message: 'Failed to get Google authentication tokens.',
+        );
+      }
+
+      // Create a new credential
+      final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      UserCredential result = await _auth.signInWithCredential(credential);
-      
-      // Create user document if it doesn't exist
-      if (result.additionalUserInfo?.isNewUser == true) {
-        await _createUserDocument(result.user!, googleUser.displayName ?? 'User');
+      // Sign in to Firebase with the credential
+      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final User? user = userCredential.user;
+
+      if (user == null) {
+        throw FirebaseAuthException(
+          code: 'no-user-after-google-sign-in',
+          message: 'No user returned after Google Sign-In with Firebase.',
+        );
       }
 
-      return result;
+      // Get user info safely
+      String displayName = user.displayName ?? user.email?.split('@')[0] ?? 'User';
+      String email = user.email ?? '';
+      String photoUrl = user.photoURL ?? '';
+
+      // If it's a new user, create their document. Otherwise, ensure it exists.
+      if (userCredential.additionalUserInfo?.isNewUser == true) {
+        await createUserDocument(user, displayName);
+      } else {
+        await ensureUserDocument(user);
+      }
+
+      return userCredential;
     } on FirebaseAuthException catch (e) {
+      if (kDebugMode) {
+        log('Firebase Auth Error (Google Sign In): ${e.code} - ${e.message}');
+      }
+      // Re-throw the handled exception
       throw _handleAuthException(e);
     } catch (e) {
-      print('Google sign in error: $e');
-      throw Exception('Google sign in failed. Please try again.');
+      if (kDebugMode) {
+        log('Unexpected error during Google Sign In: $e');
+      }
+      // General error for unexpected issues during Google Sign-In
+      throw FirebaseAuthException(
+        code: 'google-sign-in-failed',
+        message: 'Google sign-in failed. Please try again or use email login.',
+      );
     }
   }
 
   // Create user document in Firestore
-  Future<void> _createUserDocument(User user, String username) async {
+  Future<void> createUserDocument(User user, String username) async {
     try {
       await _firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'email': user.email,
         'username': username,
-        'fullName': username,
+        'fullName': user.displayName ?? username,
         'institution': '',
         'field': '',
         'year': '',
-        'profileImageUrl': '',
+        'profileImageUrl': user.photoURL ?? '',
         'monthlyBudget': 0.0,
         'totalExpenses': 0.0,
         'totalWithdrawn': 0.0,
         'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
         'lastActive': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
     } catch (e) {
-      print('Error creating user document: $e');
+      if (kDebugMode) {
+        log('Error creating user document: $e');
+      }
       throw Exception('Failed to create user profile');
     }
   }
@@ -120,34 +198,102 @@ class AuthService {
     try {
       DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists && doc.data() != null) {
-        return doc.data() as Map<String, dynamic>;
+        final data = doc.data() as Map<String, dynamic>;
+
+        // Convert Firestore Timestamps to DateTime strings if needed
+        if (data['createdAt'] is Timestamp) {
+          data['createdAt'] = (data['createdAt'] as Timestamp).toDate().toIso8601String();
+        }
+        if (data['updatedAt'] is Timestamp) {
+          data['updatedAt'] = (data['updatedAt'] as Timestamp).toDate().toIso8601String();
+        }
+        if (data['lastActive'] is Timestamp) {
+          data['lastActive'] = (data['lastActive'] as Timestamp).toDate().toIso8601String();
+        }
+
+        return data;
       }
       return null;
     } catch (e) {
-      print('Error getting user data: $e');
+      if (kDebugMode) {
+        log('Error getting user data: $e');
+      }
       return null;
     }
   }
 
-  // Update user data
+  // Update or create user data (handles both cases)
   Future<void> updateUserData(String uid, Map<String, dynamic> data) async {
     try {
-      await _firestore.collection('users').doc(uid).update({
-        ...data,
-        'lastActive': FieldValue.serverTimestamp(),
-      });
+      // First check if document exists
+      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+
+      if (!doc.exists) {
+        // Document doesn't exist, create it with default values
+        final currentUser = _auth.currentUser;
+        await _firestore.collection('users').doc(uid).set({
+          'uid': uid,
+          'email': currentUser?.email ?? '',
+          'username': data['username'] ?? currentUser?.displayName ?? 'User',
+          'fullName': data['fullName'] ?? currentUser?.displayName ?? 'User',
+          'institution': data['institution'] ?? '',
+          'field': data['field'] ?? '',
+          'year': data['year'] ?? '',
+          'profileImageUrl': data['profileImageUrl'] ?? currentUser?.photoURL ?? '',
+          'monthlyBudget': data['monthlyBudget'] ?? 0.0,
+          'totalExpenses': data['totalExpenses'] ?? 0.0,
+          'totalWithdrawn': data['totalWithdrawn'] ?? 0.0,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'lastActive': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Document exists, update it
+        final updateData = {
+          ...data,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'lastActive': FieldValue.serverTimestamp(),
+        };
+
+        await _firestore.collection('users').doc(uid).update(updateData);
+      }
     } catch (e) {
-      print('Error updating user data: $e');
-      throw Exception('Failed to update user data');
+      if (kDebugMode) {
+        log('Error updating user data: $e');
+      }
+      throw Exception('Failed to update user data: $e');
+    }
+  }
+
+  // Ensure user document exists (call this after login)
+  Future<void> ensureUserDocument(User user) async {
+    try {
+      DocumentSnapshot doc = await _firestore.collection('users').doc(user.uid).get();
+
+      if (!doc.exists) {
+        await createUserDocument(user, user.displayName ?? 'User');
+      }
+      // Always update lastActive on login/ensure
+      await updateUserActivity();
+    } catch (e) {
+      if (kDebugMode) {
+        log('Error ensuring user document: $e');
+      }
     }
   }
 
   // Update user activity
   Future<void> updateUserActivity() async {
     if (currentUser != null) {
-      await _firestore.collection('users').doc(currentUser!.uid).update({
-        'lastActive': FieldValue.serverTimestamp(),
-      });
+      try {
+        await _firestore.collection('users').doc(currentUser!.uid).set({
+          'lastActive': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        if (kDebugMode) {
+          log('Error updating user activity: $e');
+        }
+      }
     }
   }
 
@@ -165,9 +311,9 @@ class AuthService {
         email: user.email!,
         password: currentPassword,
       );
-      
+
       await user.reauthenticateWithCredential(credential);
-      
+
       // Update password
       await user.updatePassword(newPassword);
     } on FirebaseAuthException catch (e) {
@@ -178,32 +324,65 @@ class AuthService {
   // Sign out
   Future<void> signOut() async {
     try {
-      await _googleSignIn.signOut();
+      await _googleSignIn.signOut(); // Ensure Google session is also signed out
       await _auth.signOut();
     } catch (e) {
-      print('Error signing out: $e');
+      if (kDebugMode) {
+        log('Error signing out: $e');
+      }
     }
   }
 
   // Handle auth exceptions
-  String _handleAuthException(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'weak-password':
-        return 'The password provided is too weak.';
-      case 'email-already-in-use':
-        return 'The account already exists for that email.';
-      case 'user-not-found':
-        return 'No user found for that email.';
-      case 'wrong-password':
-        return 'Wrong password provided.';
-      case 'invalid-email':
-        return 'The email address is not valid.';
-      case 'user-disabled':
-        return 'This user account has been disabled.';
-      case 'too-many-requests':
-        return 'Too many requests. Try again later.';
-      default:
-        return 'An error occurred: ${e.message}';
+  FirebaseAuthException _handleAuthException(FirebaseAuthException e) {
+    if (kDebugMode) {
+      log('Auth Error: ${e.code} - ${e.message}');
     }
+
+    // Map Firebase error codes to user-friendly messages
+    String message;
+    switch (e.code) {
+      case 'user-not-found':
+        message = 'No user found with this email address.';
+        break;
+      case 'wrong-password':
+      case 'invalid-credential': // Sometimes Google sign-in can throw this if credentials are bad
+        message = 'Incorrect password or invalid credentials. Please try again.';
+        break;
+      case 'email-already-in-use':
+        message = 'An account already exists with this email address.';
+        break;
+      case 'invalid-email':
+        message = 'The email address is not valid.';
+        break;
+      case 'user-disabled':
+        message = 'This user account has been disabled.';
+        break;
+      case 'too-many-requests':
+        message = 'Too many failed login attempts. Please try again later.';
+        break;
+      case 'weak-password':
+        message = 'The password provided is too weak.';
+        break;
+      case 'network-request-failed':
+        message = 'Network error. Please check your internet connection.';
+        break;
+      case 'user-cancelled':
+        message = 'The sign-in process was cancelled by the user.';
+        break;
+      case 'google-sign-in-failed':
+      case 'invalid-google-credentials':
+      case 'no-user-after-google-sign-in':
+      case 'google-sign-in-type-error':
+        message = 'Google sign-in failed. Please try again or use email login.';
+        break;
+      default:
+        message = e.message ?? 'An unexpected authentication error occurred.';
+    }
+
+    return FirebaseAuthException(
+      code: e.code,
+      message: message,
+    );
   }
 }

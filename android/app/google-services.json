@@ -12,7 +12,20 @@
           "package_name": "com.example.debbie_project"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "334122075796-et0guoj1qr4lcenfat5s0oho72a2t9o0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.debbie_project",
+            "certificate_hash": "81b718e305054178f8b70df3d6959b4111e2ded5"
+          }
+        },
+        {
+          "client_id": "334122075796-sg5ajt5g4lm1jmeuu0c6e1gaeo62i30q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB9ltBRDtgUXemhwE_4JCfb79TXgaibKY4"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "334122075796-sg5ajt5g4lm1jmeuu0c6e1gaeo62i30q.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "334122075796-gei3gvav0sv1ei0m8hal9ouljurl5e5f.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.debbieProject"
+              }
+            }
+          ]
         }
       }
     }

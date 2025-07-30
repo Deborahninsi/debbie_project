@@ -43,7 +43,7 @@ class _SignupPageState extends State<SignupPage> {
       if (error != null) {
         setState(() => _errorMessage = error);
       } else {
-        // Show success message
+        // Show success message and navigate to login
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -52,16 +52,16 @@ class _SignupPageState extends State<SignupPage> {
                   Icon(Icons.check_circle, color: Colors.white),
                   SizedBox(width: 8),
                   Text('Account created successfully! Please login.'),
-                ],
-              ),
-              backgroundColor: Colors.green,
+              ],
             ),
-          );
-          // Navigate to login
-          Navigator.pushReplacementNamed(context, '/login');
-        }
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacementNamed(context, '/login');
       }
     }
+  }
+
   }
 
   Future<void> _signupWithGoogle() async {
@@ -70,6 +70,11 @@ class _SignupPageState extends State<SignupPage> {
     final error = await authProvider.signInWithGoogle();
     if (error != null) {
       setState(() => _errorMessage = error);
+    } else {
+      // Navigation will be handled automatically by AuthWrapper
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/dashboard', (route) => false);
+      }
     }
   }
 
@@ -271,7 +276,7 @@ class _SignupPageState extends State<SignupPage> {
                                     ),
                                   )
                                 : const Text(
-                                    'Sign Up with Email', 
+                                    'Sign Up', 
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,

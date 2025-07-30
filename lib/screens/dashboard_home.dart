@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/budget_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/expense_provider.dart';
-import '../models/transaction_model.dart';
 import 'dashboard_screen.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
 
@@ -66,9 +65,23 @@ class _DashboardHomeState extends State<DashboardHome> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(
-                          '${authProvider.getGreeting()}, ${authProvider.userData?['fullName'] ?? authProvider.displayName}!',
-                          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${authProvider.getGreeting()}!',
+                              style: textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                            Text(
+                              'Welcome back, ${authProvider.userData?['fullName'] ?? authProvider.displayName}',
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       IconButton(

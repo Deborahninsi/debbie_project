@@ -9,7 +9,7 @@ class LandingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF2DC2A4),
+      backgroundColor: const Color(0xFF2DC2A4),
       body: SafeArea(
         child: Column(
           children: [
@@ -27,24 +27,24 @@ class LandingPage extends StatelessWidget {
               flex: 2,
               child: Column(
                 children: [
-                  Text(
+                  const Text(
                     "Welcome to",
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
-                  Text(
+                  const Text(
                     "Nkwa 💚",
                     style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
                     child: Text(
                       "Nkwa is a digital wooden bank that lets you plan and set aside money for things that matter to you",
                       style: TextStyle(color: Colors.white, fontSize: 16),
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  SizedBox(height: 10),
-                  Row(
+                  const SizedBox(height: 10),
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircleAvatar(radius: 5, backgroundColor: Colors.white),
@@ -54,29 +54,29 @@ class LandingPage extends StatelessWidget {
                       CircleAvatar(radius: 5, backgroundColor: Colors.white54),
                     ],
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: Column(
                       children: [
                         ElevatedButton(
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SignupPage())),
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupPage())),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.black,
-                            minimumSize: Size(double.infinity, 50),
+                            minimumSize: const Size(double.infinity, 50),
                           ),
-                          child: Text("Create an account", style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text("Create an account", style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
-                        SizedBox(height: 10),
+                        const SizedBox(height: 10),
                         OutlinedButton(
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LoginPage())),
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginPage())),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            side: BorderSide(color: Colors.white),
-                            minimumSize: Size(double.infinity, 50),
+                            side: const BorderSide(color: Colors.white),
+                            minimumSize: const Size(double.infinity, 50),
                           ),
-                          child: Text("Login"),
+                          child: const Text("Login"),
                         ),
                       ],
                     ),
